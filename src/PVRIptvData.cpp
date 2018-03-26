@@ -343,7 +343,7 @@ PVR_ERROR PVRIptvData::GetChannels(ADDON_HANDLE handle, bool bRadio)
       xbmcChannel.bIsRadio          = channel.bRadio;
       xbmcChannel.iChannelNumber    = channel.iChannelNumber;
       strncpy(xbmcChannel.strChannelName, channel.strChannelName.c_str(), sizeof(xbmcChannel.strChannelName) - 1);
-      strncpy(xbmcChannel.strStreamURL, channel.strStreamURL.c_str(), sizeof(xbmcChannel.strStreamURL) - 1);
+      //strncpy(xbmcChannel.strStreamURL, channel.strStreamURL.c_str(), sizeof(xbmcChannel.strStreamURL) - 1);
       xbmcChannel.iEncryptionSystem = channel.iEncryptionSystem;
       strncpy(xbmcChannel.strIconPath, channel.strLogoPath.c_str(), sizeof(xbmcChannel.strIconPath) - 1);
       xbmcChannel.bIsHidden         = false;
@@ -369,6 +369,7 @@ bool PVRIptvData::GetChannel(const PVR_CHANNEL &channel, PVRIptvChannel &myChann
       myChannel.strChannelName    = thisChannel.strChannelName;
       myChannel.strLogoPath       = thisChannel.strLogoPath;
       myChannel.strStreamURL      = thisChannel.strStreamURL;
+      myChannel.properties        = thisChannel.properties;
 
       return true;
     }
@@ -382,13 +383,22 @@ bool PVRIptvData::GetRecording(const PVR_RECORDING &recording, PVRIptvRecording 
   for (unsigned int i = 0; i < m_recordings.size(); i++)
   {
     PVRIptvRecording &thisRec = m_recordings.at(i);
-    if (recording.recordingTime == thisRec.startTime)
+    if (strcmp(recording.strRecordingId, thisRec.strRecordId.c_str()) == 0)
     {
-      //myRecording.duration =
+      myRecording.strRecordId      = thisRec.strRecordId;
+      myRecording.strTitle         = thisRec.strTitle;
+      myRecording.strStreamUrl     = thisRec.strStreamUrl;
+      myRecording.strPlotOutline   = thisRec.strPlotOutline;
+      myRecording.strPlot          = thisRec.strPlot;
+      myRecording.strChannelName   = thisRec.strChannelName;
+      myRecording.startTime        = thisRec.startTime;
+      myRecording.duration         = thisRec.duration;
+
+      return true;
     }
   }
 
-  return true;
+  return false;
 }
 
 int PVRIptvData::GetChannelGroupsAmount(void)
@@ -478,7 +488,7 @@ PVR_ERROR PVRIptvData::GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &
 
       tag.iUniqueBroadcastId  = myTag->iBroadcastId;
       tag.strTitle            = myTag->strTitle.c_str();
-      tag.iChannelNumber      = myTag->iChannelId;
+      tag.iUniqueChannelId    = myTag->iChannelId;
       tag.startTime           = myTag->startTime;
       tag.endTime             = myTag->endTime;
       tag.strPlotOutline      = myTag->strPlotOutline.c_str();
@@ -731,7 +741,7 @@ PVR_ERROR PVRIptvData::GetRecordings(ADDON_HANDLE handle)
 
     strncpy(xbmcRecord.strRecordingId, rec.strRecordId.c_str(), sizeof(xbmcRecord.strRecordingId) - 1);
     strncpy(xbmcRecord.strTitle, rec.strTitle.c_str(), sizeof(xbmcRecord.strTitle) - 1);
-    strncpy(xbmcRecord.strStreamURL, rec.strStreamUrl.c_str(), sizeof(xbmcRecord.strStreamURL) - 1);
+    //strncpy(xbmcRecord.strStreamURL, rec.strStreamUrl.c_str(), sizeof(xbmcRecord.strStreamURL) - 1);
     strncpy(xbmcRecord.strChannelName, rec.strChannelName.c_str(), sizeof(xbmcRecord.strChannelName) - 1);
     xbmcRecord.recordingTime = rec.startTime;
     strncpy(xbmcRecord.strPlotOutline, rec.strPlotOutline.c_str(), sizeof(xbmcRecord.strPlotOutline) - 1);

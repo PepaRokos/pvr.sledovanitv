@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon
   id="pvr.sledovanitv.cz"
-  version="2.0.2"
+  version="3.0.0"
   name="PVR Sledovanitv.cz"
   provider-name="Josef Rokos">
-  <requires>
-    <c-pluff version="0.1"/>
-    <import addon="xbmc.pvr" version="5.2.1"/>
-  </requires>
+  <requires>@ADDON_DEPENDS@</requires>
   <extension
     point="xbmc.pvrclient"
     library_@PLATFORM@="@LIBRARY_FILENAME@"/>

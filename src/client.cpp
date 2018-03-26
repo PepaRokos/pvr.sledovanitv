@@ -26,8 +26,8 @@
 
 #include "p8-platform/util/util.h"
 #include "PVRIptvData.h"
-#include "kodi/xbmc_pvr_dll.h"
-#include "kodi/libKODI_guilib.h"
+#include "xbmc_pvr_dll.h"
+#include "libKODI_guilib.h"
 
 #include <iostream>
 
@@ -182,11 +182,6 @@ bool ADDON_HasSettings()
   return true;
 }
 
-unsigned int ADDON_GetSettings(ADDON_StructSetting ***sSet)
-{
-  return 0;
-}
-
 ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
 {
   // reset cache and restart addon 
@@ -235,7 +230,7 @@ void ADDON_Announce(const char *flag, const char *sender, const char *message, c
  * PVR Client AddOn specific public library functions
  ***********************************************************/
 
-const char* GetPVRAPIVersion(void)
+/*const char* GetPVRAPIVersion(void)
 {
   static const char *strApiVersion = XBMC_PVR_API_VERSION;
   return strApiVersion;
@@ -258,7 +253,7 @@ const char* GetMininumGUIAPIVersion(void)
   static const char *strMinGuiApiVersion = KODI_GUILIB_MIN_API_VERSION;
   return strMinGuiApiVersion;
 }
-
+*/
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
   pCapabilities->bSupportsEPG             = true;
@@ -321,9 +316,69 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
   return PVR_ERROR_SERVER_ERROR;
 }
 
+PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
+{
+  if (!channel || !properties || !iPropertiesCount)
+    return PVR_ERROR_SERVER_ERROR;
+
+  if (*iPropertiesCount < 1)
+    return PVR_ERROR_INVALID_PARAMETERS;
+
+  if (m_data && m_data->GetChannel(*channel, m_currentChannel))
+  {
+    strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
+    strncpy(properties[0].strValue, m_currentChannel.strStreamURL.c_str(), sizeof(properties[0].strValue) - 1);
+    *iPropertiesCount = 1;
+    if (!m_currentChannel.properties.empty())
+    {
+      for (auto& prop : m_currentChannel.properties)
+      {
+        strncpy(properties[*iPropertiesCount].strName, prop.first.c_str(),
+                sizeof(properties[*iPropertiesCount].strName) - 1);
+        strncpy(properties[*iPropertiesCount].strValue, prop.second.c_str(),
+                sizeof(properties[*iPropertiesCount].strName) - 1);
+        (*iPropertiesCount)++;
+      }
+    }
+    return PVR_ERROR_NO_ERROR;
+  }
+
+  return PVR_ERROR_SERVER_ERROR;
+}
+
+PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
+{
+  if (!recording || !properties || !iPropertiesCount)
+    return PVR_ERROR_SERVER_ERROR;
+
+  if (*iPropertiesCount < 1)
+    return PVR_ERROR_INVALID_PARAMETERS;
+
+  if (m_data && m_data->GetRecording(*recording, m_currentRecording))
+  {
+    strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
+    strncpy(properties[0].strValue, m_currentRecording.strStreamUrl.c_str(), sizeof(properties[0].strValue) - 1);
+    *iPropertiesCount = 1;
+    if (!m_currentChannel.properties.empty())
+    {
+      for (auto& prop : m_currentChannel.properties)
+      {
+        strncpy(properties[*iPropertiesCount].strName, prop.first.c_str(),
+                sizeof(properties[*iPropertiesCount].strName) - 1);
+        strncpy(properties[*iPropertiesCount].strValue, prop.second.c_str(),
+                sizeof(properties[*iPropertiesCount].strName) - 1);
+        (*iPropertiesCount)++;
+      }
+    }
+    return PVR_ERROR_NO_ERROR;
+  }
+
+  return PVR_ERROR_SERVER_ERROR;
+}
+
 bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
-  XBMC->Log(LOG_DEBUG, "%s - OpenLiveStream", __FUNCTION__);
+  /*XBMC->Log(LOG_DEBUG, "%s - OpenLiveStream", __FUNCTION__);
   if (m_data)
   {
     CloseLiveStream();
@@ -334,17 +389,17 @@ bool OpenLiveStream(const PVR_CHANNEL &channel)
       m_data->SetPlaying(true);
       return true;
     }
-  }
+  }*/
 
   return false;
 }
 
 void CloseLiveStream(void)
 {
-  if (m_data)
+  /*if (m_data)
     m_data->SetPlaying(false);
 
-  m_bIsPlaying = false;
+  m_bIsPlaying = false;*/
 }
 
 int GetCurrentClientChannel(void)
@@ -357,11 +412,6 @@ bool SwitchChannel(const PVR_CHANNEL &channel)
   CloseLiveStream();
 
   return OpenLiveStream(channel);
-}
-
-PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 int GetChannelGroupsAmount(void)
@@ -529,14 +579,14 @@ PVR_ERROR RenameRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT
 PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording, int lastplayedposition) { return PVR_ERROR_NOT_IMPLEMENTED; }
 int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording) { return -1; }
-PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*) { return PVR_ERROR_NOT_IMPLEMENTED; };
+PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR UpdateTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED; }
 void DemuxAbort(void) {}
 DemuxPacket* DemuxRead(void) { return NULL; }
 unsigned int GetChannelSwitchDelay(void) { return 0; }
 void PauseStream(bool bPaused) {}
 bool SeekTime(double,bool,double*) { return false; }
-void SetSpeed(int) {};
+void SetSpeed(int) {}
 time_t GetPlayingTime() { return 0; }
 time_t GetBufferTimeStart() { return 0; }
 time_t GetBufferTimeEnd() { return 0; }
@@ -546,5 +596,12 @@ void OnPowerSavingActivated() { }
 void OnPowerSavingDeactivated() { }
 PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 bool IsRealTimeStream() { return true; }
+PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 
 }
