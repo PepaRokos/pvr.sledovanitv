@@ -45,6 +45,7 @@ public:
   std::string getRecordingUrl(const std::string &recId);
   bool addTimer(const std::string &eventId);
   std::string getEventId(const std::string &channel, time_t start, time_t end);
+  std::string getEventTimeshift(const std::string &eventId);
   bool deleteRecord(const std::string &recId);
   bool keepAlive();
 

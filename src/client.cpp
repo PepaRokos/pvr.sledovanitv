@@ -324,22 +324,14 @@ PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE
   if (*iPropertiesCount < 1)
     return PVR_ERROR_INVALID_PARAMETERS;
 
-  if (m_data && m_data->GetChannel(*channel, m_currentChannel))
+  PVRIptvChannel currChannel;
+
+  if (m_data && m_data->GetChannel(*channel, currChannel))
   {
     strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
-    strncpy(properties[0].strValue, m_currentChannel.strStreamURL.c_str(), sizeof(properties[0].strValue) - 1);
+    strncpy(properties[0].strValue, currChannel.strStreamURL.c_str(), sizeof(properties[0].strValue) - 1);
     *iPropertiesCount = 1;
-    if (!m_currentChannel.properties.empty())
-    {
-      for (auto& prop : m_currentChannel.properties)
-      {
-        strncpy(properties[*iPropertiesCount].strName, prop.first.c_str(),
-                sizeof(properties[*iPropertiesCount].strName) - 1);
-        strncpy(properties[*iPropertiesCount].strValue, prop.second.c_str(),
-                sizeof(properties[*iPropertiesCount].strName) - 1);
-        (*iPropertiesCount)++;
-      }
-    }
+
     return PVR_ERROR_NO_ERROR;
   }
 
@@ -354,22 +346,14 @@ PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED
   if (*iPropertiesCount < 1)
     return PVR_ERROR_INVALID_PARAMETERS;
 
-  if (m_data && m_data->GetRecording(*recording, m_currentRecording))
+  PVRIptvRecording currRecording;
+
+  if (m_data && m_data->GetRecording(*recording, currRecording))
   {
     strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
-    strncpy(properties[0].strValue, m_currentRecording.strStreamUrl.c_str(), sizeof(properties[0].strValue) - 1);
+    strncpy(properties[0].strValue, m_data->GetRecordingUrl(currRecording.strRecordId).c_str(), sizeof(properties[0].strValue) - 1);
     *iPropertiesCount = 1;
-    if (!m_currentChannel.properties.empty())
-    {
-      for (auto& prop : m_currentChannel.properties)
-      {
-        strncpy(properties[*iPropertiesCount].strName, prop.first.c_str(),
-                sizeof(properties[*iPropertiesCount].strName) - 1);
-        strncpy(properties[*iPropertiesCount].strValue, prop.second.c_str(),
-                sizeof(properties[*iPropertiesCount].strName) - 1);
-        (*iPropertiesCount)++;
-      }
-    }
+
     return PVR_ERROR_NO_ERROR;
   }
 
@@ -553,6 +537,41 @@ const char *GetBackendHostname(void)
 	return "";
 }
 
+PVR_ERROR IsEPGTagPlayable(const EPG_TAG *pEpgTag, bool *pbPlayable)
+{
+  time_t t = time(NULL);
+
+  if (t == -1)
+  {
+    return PVR_ERROR_FAILED;
+  }
+
+  *pbPlayable = pEpgTag->startTime > t - 108000 && pEpgTag->startTime < t;
+
+  return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG *pTag, PVR_NAMED_VALUE *properties, unsigned int *iPropertiesCount)
+{
+  string url;
+
+  if (m_data)
+  {
+    url = m_data->GetEventUrl(pTag->iUniqueChannelId, pTag->startTime, pTag->endTime);
+  }
+
+  if (url.empty())
+  {
+    return PVR_ERROR_FAILED;
+  }
+
+  strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
+  strncpy(properties[0].strValue, url.c_str(), sizeof(properties[0].strValue) - 1);
+  *iPropertiesCount = 1;
+
+  return PVR_ERROR_NO_ERROR;
+}
+
 /** UNUSED API FUNCTIONS */
 const char * GetLiveStreamURL(const PVR_CHANNEL &channel)  { return ""; }
 PVR_ERROR DialogChannelScan(void) { return PVR_ERROR_NOT_IMPLEMENTED; }
@@ -601,7 +620,5 @@ PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPL
 PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 
 }

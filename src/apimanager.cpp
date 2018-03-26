@@ -133,7 +133,7 @@ bool ApiManager::pairDevice()
 
     params["username"] = g_strUserName;
     params["password"] = g_strPassword;
-    params["type"] = "androidtv";
+    params["type"] = "xbmc";
     params["product"] = hostName;
     params["serial"] = macAddr;
 
@@ -284,6 +284,15 @@ std::string ApiManager::getEventId(const std::string &channel, time_t start, tim
   return apiCall("epg", param);
 }
 
+std::string ApiManager::getEventTimeshift(const std::string &eventId)
+{
+  ApiParamMap param;
+  param["eventId"] = eventId;
+  param["format"] = "m3u8";
+
+  return apiCall("event-timeshift", param);
+}
+
 bool ApiManager::deleteRecord(const std::string &recId)
 {
   ApiParamMap param;
@@ -308,7 +317,7 @@ std::string ApiManager::urlEncode(const std::string &str)
 
 std::string ApiManager::buildQueryString(ApiParamMap paramMap)
 {
-  std::string strOut = m_sessionId;
+  std::string strOut = "PHPSESSID=" + m_sessionId;
 
   for (ApiParamMap::iterator i = paramMap.begin(); i != paramMap.end(); i++)
   {

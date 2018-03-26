@@ -155,6 +155,7 @@ bool PVRIptvData::LoadEPG(time_t iStart, time_t iEnd)
         iptventry.iGenreType = 0;
         iptventry.iGenreSubType = 0;
         iptventry.iChannelId = iptvchannel->iUniqueId;
+        //iptventry.strEventId = epgEntry.get("eventId", "").asString();
         iptventry.strTitle = epgEntry.get("title", "").asString();
         iptventry.strPlot = epgEntry.get("description", "").asString();
         iptventry.startTime = ParseDateTime(epgEntry.get("startTime", "").asString());
@@ -276,6 +277,8 @@ bool PVRIptvData::LoadPlayList(void)
     XBMC->Log(LOG_NOTICE, "Not logged in. Channels not loaded.");
     return false;
   }
+
+  XBMC->Log(LOG_DEBUG, "Loadin playlist");
 
   std::string playlist = m_manager.getPlaylist();
 
@@ -842,4 +845,32 @@ PVR_ERROR PVRIptvData::DeleteRecord(int iRecordId)
 void PVRIptvData::SetPlaying(bool playing)
 {
   m_bIsPlaying = playing;
+}
+
+string PVRIptvData::GetEventUrl(int channelId, time_t iStart, time_t iEnd)
+{
+  PVRIptvChannel *pChannel = FindChannel(channelId);
+
+  if (pChannel == NULL)
+  {
+    return "";
+  }
+
+  string timeShift = m_manager.getEventTimeshift(FindTvShowId(*pChannel, iStart, iEnd));
+
+  Json::Reader reader;
+  Json::Value root;
+
+  if (!reader.parse(timeShift, root))
+  {
+    XBMC->Log(LOG_NOTICE, "Cannot parse event.");
+    return "";
+  }
+
+  return root.get("url", "").asString();
+}
+
+string PVRIptvData::GetRecordingUrl(const string &strRecordingId)
+{
+  return m_manager.getRecordingUrl(strRecordingId);
 }

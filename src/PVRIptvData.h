@@ -113,41 +113,43 @@ public:
   PVRIptvData(void);
   virtual ~PVRIptvData(void);
 
-  virtual int       GetChannelsAmount(void);
-  virtual PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
-  virtual bool      GetChannel(const PVR_CHANNEL &channel, PVRIptvChannel &myChannel);
-  virtual bool      GetRecording(const PVR_RECORDING &recording, PVRIptvRecording &myRecording);
-  virtual int       GetChannelGroupsAmount(void);
-  virtual PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio);
-  virtual PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group);
-  virtual PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd);
-  virtual int       GetRecordingsAmount();
-  virtual PVR_ERROR GetRecordings(ADDON_HANDLE handle);
-  virtual int       GetTimersAmount();
-  virtual PVR_ERROR GetTimers(ADDON_HANDLE handle);
-  virtual PVR_ERROR AddTimer(const PVR_TIMER &timer);
-  virtual PVR_ERROR DeleteRecord(const std::string &strRecordId);
-  virtual PVR_ERROR DeleteRecord(int iRecordId);
-  virtual void      SetPlaying(bool playing);
+  int       GetChannelsAmount(void);
+  PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
+  bool      GetChannel(const PVR_CHANNEL &channel, PVRIptvChannel &myChannel);
+  bool      GetRecording(const PVR_RECORDING &recording, PVRIptvRecording &myRecording);
+  int       GetChannelGroupsAmount(void);
+  PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio);
+  PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group);
+  PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd);
+  int       GetRecordingsAmount();
+  PVR_ERROR GetRecordings(ADDON_HANDLE handle);
+  int       GetTimersAmount();
+  PVR_ERROR GetTimers(ADDON_HANDLE handle);
+  PVR_ERROR AddTimer(const PVR_TIMER &timer);
+  PVR_ERROR DeleteRecord(const std::string &strRecordId);
+  PVR_ERROR DeleteRecord(int iRecordId);
+  void      SetPlaying(bool playing);
+  std::string GetEventUrl(int channelId, time_t iStart, time_t iEnd);
+  std::string GetRecordingUrl(const std::string &strRecordingId);
 
 protected:
-  virtual bool                 LoadPlayList(void);
-  virtual bool                 LoadEPG(time_t iStart, time_t iEnd);
-  virtual bool                 LoadRecordings();
-  virtual int                  GetFileContents(CStdString& url, std::string &strContent);
-  virtual PVRIptvChannel      *FindChannel(const std::string &strId, const std::string &strName);
-  virtual PVRIptvChannel      *FindChannel(int iChannelUid);
-  virtual PVRIptvChannelGroup *FindGroup(const std::string &strName);
-  virtual PVRIptvEpgChannel   *FindEpg(const std::string &strId);
-  virtual std::string          FindTvShowId(const PVRIptvChannel &channel, time_t iStart, time_t iEnd);
-  virtual PVRIptvEpgChannel   *FindEpgForChannel(PVRIptvChannel &channel);
-  virtual int                  ParseDateTime(std::string strDate);
-  virtual int                  GetCachedFileContents(const std::string &strCachedName, const std::string &strFilePath, 
-                                                     std::string &strContent, const bool bUseCache = false);
-  virtual int                  GetChannelId(const char * strChannelName, const char * strStreamUrl);
+  bool                 LoadPlayList(void);
+  bool                 LoadEPG(time_t iStart, time_t iEnd);
+  bool                 LoadRecordings();
+  int                  GetFileContents(CStdString& url, std::string &strContent);
+  PVRIptvChannel      *FindChannel(const std::string &strId, const std::string &strName);
+  PVRIptvChannel      *FindChannel(int iChannelUid);
+  PVRIptvChannelGroup *FindGroup(const std::string &strName);
+  PVRIptvEpgChannel   *FindEpg(const std::string &strId);
+  std::string          FindTvShowId(const PVRIptvChannel &channel, time_t iStart, time_t iEnd);
+  PVRIptvEpgChannel   *FindEpgForChannel(PVRIptvChannel &channel);
+  int                  ParseDateTime(std::string strDate);
+  int                  GetCachedFileContents(const std::string &strCachedName, const std::string &strFilePath,
+                                             std::string &strContent, const bool bUseCache = false);
+  int                  GetChannelId(const char * strChannelName, const char * strStreamUrl);
 
 protected:
-  virtual void *Process(void);
+  virtual void *Process(void) override;
 
 private:
   bool                              m_bEGPLoaded;
