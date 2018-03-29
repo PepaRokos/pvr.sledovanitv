@@ -131,12 +131,13 @@ public:
   void      SetPlaying(bool playing);
   std::string GetEventUrl(int channelId, time_t iStart, time_t iEnd);
   std::string GetRecordingUrl(const std::string &strRecordingId);
+  PVR_ERROR CanPlayEvent(const EPG_TAG *epgTag, bool *bCanPlay);
+  PVR_ERROR CanRecordEvent(const EPG_TAG *epgTag, bool *bCanRecord);
 
 protected:
   bool                 LoadPlayList(void);
   bool                 LoadEPG(time_t iStart, time_t iEnd);
   bool                 LoadRecordings();
-  int                  GetFileContents(CStdString& url, std::string &strContent);
   PVRIptvChannel      *FindChannel(const std::string &strId, const std::string &strName);
   PVRIptvChannel      *FindChannel(int iChannelUid);
   PVRIptvChannelGroup *FindGroup(const std::string &strName);
@@ -144,9 +145,8 @@ protected:
   std::string          FindTvShowId(const PVRIptvChannel &channel, time_t iStart, time_t iEnd);
   PVRIptvEpgChannel   *FindEpgForChannel(PVRIptvChannel &channel);
   int                  ParseDateTime(std::string strDate);
-  int                  GetCachedFileContents(const std::string &strCachedName, const std::string &strFilePath,
-                                             std::string &strContent, const bool bUseCache = false);
   int                  GetChannelId(const char * strChannelName, const char * strStreamUrl);
+  std::string          GetAvailability(const EPG_TAG *epgTag);
 
 protected:
   virtual void *Process(void) override;

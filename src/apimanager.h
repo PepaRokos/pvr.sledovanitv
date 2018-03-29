@@ -57,6 +57,11 @@ private:
   std::string apiCall(const std::string &function, ApiParamMap paramsMap);
   bool isSuccess(const std::string &response);
 
+  int getFileContents(const std::string &strUrl, std::string &strContent);
+  int getCachedFileContents(const std::string &strCachedName, const std::string &strFilePath,
+                                             std::string &strContent, const bool bUseCache = false);
+
+
   static const std::string API_URL;
   static const std::string LOG_PREFIX;
   static const std::string PAIR_FILE;

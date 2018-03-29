@@ -230,30 +230,6 @@ void ADDON_Announce(const char *flag, const char *sender, const char *message, c
  * PVR Client AddOn specific public library functions
  ***********************************************************/
 
-/*const char* GetPVRAPIVersion(void)
-{
-  static const char *strApiVersion = XBMC_PVR_API_VERSION;
-  return strApiVersion;
-}
-
-const char* GetMininumPVRAPIVersion(void)
-{
-  static const char *strMinApiVersion = XBMC_PVR_MIN_API_VERSION;
-  return strMinApiVersion;
-}
-
-const char* GetGUIAPIVersion(void)
-{
-  static const char *strGuiApiVersion = KODI_GUILIB_API_VERSION;
-  return strGuiApiVersion;
-}
-
-const char* GetMininumGUIAPIVersion(void)
-{
-  static const char *strMinGuiApiVersion = KODI_GUILIB_MIN_API_VERSION;
-  return strMinGuiApiVersion;
-}
-*/
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
   pCapabilities->bSupportsEPG             = true;
@@ -539,16 +515,18 @@ const char *GetBackendHostname(void)
 
 PVR_ERROR IsEPGTagPlayable(const EPG_TAG *pEpgTag, bool *pbPlayable)
 {
-  time_t t = time(NULL);
+  if (m_data)
+    return m_data->CanPlayEvent(pEpgTag, pbPlayable);
 
-  if (t == -1)
-  {
-    return PVR_ERROR_FAILED;
-  }
+  return PVR_ERROR_SERVER_ERROR;
+}
 
-  *pbPlayable = pEpgTag->startTime > t - 108000 && pEpgTag->startTime < t;
+PVR_ERROR IsEPGTagRecordable(const EPG_TAG *pEpgTag, bool *pbRecortable)
+{
+  if (m_data)
+    return m_data->CanRecordEvent(pEpgTag, pbRecortable);
 
-  return PVR_ERROR_NO_ERROR;
+  return PVR_ERROR_SERVER_ERROR;
 }
 
 PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG *pTag, PVR_NAMED_VALUE *properties, unsigned int *iPropertiesCount)
@@ -619,6 +597,5 @@ PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEME
 PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 
 }

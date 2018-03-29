@@ -31,6 +31,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "p8-platform/os.h"
+
 #include "client.h"
 #include "apimanager.h"
 #include <ctime>
@@ -105,7 +107,64 @@ bool ApiManager::isSuccess(const std::string &response)
   if (reader.parse(response, root))
   {
     return root.get("status", 0).asInt() == 1;
+    }
+}
+
+int ApiManager::getFileContents(const std::string &strUrl, std::string &strContent)
+{
+  strContent.clear();
+  void* fileHandle = XBMC->OpenFile(strUrl.c_str(), 0);
+  if (fileHandle)
+  {
+    char buffer[1024];
+    while (int bytesRead = XBMC->ReadFile(fileHandle, buffer, 1024))
+      strContent.append(buffer, bytesRead);
+    XBMC->CloseFile(fileHandle);
   }
+
+  return strContent.length();
+}
+
+int ApiManager::getCachedFileContents(const std::string &strCachedName, const std::string &strOrigFilePath, std::string &strContents, const bool bUseCache)
+{
+  bool bNeedReload = false;
+  std::string strCachedPath = GetUserFilePath(strCachedName);
+  std::string strFilePath = strOrigFilePath;
+
+  // check cached file is exists
+  if (bUseCache && XBMC->FileExists(strCachedPath.c_str(), false))
+  {
+    struct __stat64 statCached;
+    struct __stat64 statOrig;
+
+    XBMC->StatFile(strCachedPath.c_str(), &statCached);
+    XBMC->StatFile(strFilePath.c_str(), &statOrig);
+
+    bNeedReload = statCached.st_mtime < statOrig.st_mtime || statOrig.st_mtime == 0;
+  }
+  else
+  {
+    bNeedReload = true;
+  }
+
+  if (bNeedReload)
+  {
+    getFileContents(strFilePath, strContents);
+
+    // write to cache
+    if (bUseCache && strContents.length() > 0)
+    {
+      void* fileHandle = XBMC->OpenFileForWrite(strCachedPath.c_str(), true);
+      if (fileHandle)
+      {
+        XBMC->WriteFile(fileHandle, strContents.c_str(), strContents.length());
+        XBMC->CloseFile(fileHandle);
+      }
+    }
+    return strContents.length();
+  }
+
+  return getFileContents(strCachedPath, strContents);
 }
 
 bool ApiManager::pairDevice()

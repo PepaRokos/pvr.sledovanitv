@@ -155,7 +155,6 @@ bool PVRIptvData::LoadEPG(time_t iStart, time_t iEnd)
         iptventry.iGenreType = 0;
         iptventry.iGenreSubType = 0;
         iptventry.iChannelId = iptvchannel->iUniqueId;
-        //iptventry.strEventId = epgEntry.get("eventId", "").asString();
         iptventry.strTitle = epgEntry.get("title", "").asString();
         iptventry.strPlot = epgEntry.get("description", "").asString();
         iptventry.startTime = ParseDateTime(epgEntry.get("startTime", "").asString());
@@ -235,7 +234,6 @@ bool PVRIptvData::LoadRecordings()
       }
       iptvrecording.startTime = startTime;
       iptvrecording.strPlotOutline = record.get("event", "").get("description", "").asString();
-      iptvrecording.strStreamUrl = m_manager.getRecordingUrl(iptvrecording.strRecordId);
       iptvrecording.duration = duration;
 
       m_recordings.push_back(iptvrecording);
@@ -346,7 +344,6 @@ PVR_ERROR PVRIptvData::GetChannels(ADDON_HANDLE handle, bool bRadio)
       xbmcChannel.bIsRadio          = channel.bRadio;
       xbmcChannel.iChannelNumber    = channel.iChannelNumber;
       strncpy(xbmcChannel.strChannelName, channel.strChannelName.c_str(), sizeof(xbmcChannel.strChannelName) - 1);
-      //strncpy(xbmcChannel.strStreamURL, channel.strStreamURL.c_str(), sizeof(xbmcChannel.strStreamURL) - 1);
       xbmcChannel.iEncryptionSystem = channel.iEncryptionSystem;
       strncpy(xbmcChannel.strIconPath, channel.strLogoPath.c_str(), sizeof(xbmcChannel.strIconPath) - 1);
       xbmcChannel.bIsHidden         = false;
@@ -510,21 +507,6 @@ PVR_ERROR PVRIptvData::GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &
   return PVR_ERROR_NO_ERROR;
 }
 
-int PVRIptvData::GetFileContents(CStdString& url, std::string &strContent)
-{
-  strContent.clear();
-  void* fileHandle = XBMC->OpenFile(url.c_str(), 0);
-  if (fileHandle)
-  {
-    char buffer[1024];
-    while (int bytesRead = XBMC->ReadFile(fileHandle, buffer, 1024))
-      strContent.append(buffer, bytesRead);
-    XBMC->CloseFile(fileHandle);
-  }
-
-  return strContent.length();
-}
-
 int PVRIptvData::ParseDateTime(std::string strDate)
 {
   struct tm timeinfo;
@@ -665,49 +647,6 @@ PVRIptvEpgChannel * PVRIptvData::FindEpgForChannel(PVRIptvChannel &channel)
   return NULL;
 }
 
-int PVRIptvData::GetCachedFileContents(const std::string &strCachedName, const std::string &filePath, 
-                                       std::string &strContents, const bool bUseCache /* false */)
-{
-  bool bNeedReload = false;
-  CStdString strCachedPath = GetUserFilePath(strCachedName);
-  CStdString strFilePath = filePath;
-
-  // check cached file is exists
-  if (bUseCache && XBMC->FileExists(strCachedPath, false)) 
-  {
-    struct __stat64 statCached;
-    struct __stat64 statOrig;
-
-    XBMC->StatFile(strCachedPath, &statCached);
-    XBMC->StatFile(strFilePath, &statOrig);
-
-    bNeedReload = statCached.st_mtime < statOrig.st_mtime || statOrig.st_mtime == 0;
-  } 
-  else 
-  {
-    bNeedReload = true;
-  }
-
-  if (bNeedReload) 
-  {
-    GetFileContents(strFilePath, strContents);
-
-    // write to cache
-    if (bUseCache && strContents.length() > 0) 
-    {
-      void* fileHandle = XBMC->OpenFileForWrite(strCachedPath, true);
-      if (fileHandle)
-      {
-        XBMC->WriteFile(fileHandle, strContents.c_str(), strContents.length());
-        XBMC->CloseFile(fileHandle);
-      }
-    }
-    return strContents.length();
-  } 
-
-  return GetFileContents(strCachedPath, strContents);
-}
-
 int PVRIptvData::GetRecordingsAmount()
 {
   return m_recordings.size();
@@ -727,6 +666,42 @@ int PVRIptvData::GetChannelId(const char * strChannelName, const char * strStrea
   return abs(iId);
 }
 
+string PVRIptvData::GetAvailability(const EPG_TAG *epgTag)
+{
+  PVRIptvChannel *channel = FindChannel(epgTag->iUniqueChannelId);
+
+  if (channel == NULL)
+  {
+    XBMC->Log(LOG_NOTICE, "Cannot find channel.");
+    return "";
+  }
+
+  std::string resp = m_manager.getEventId(channel->strTvgId, epgTag->startTime, epgTag->endTime);
+
+  Json::Reader reader;
+  Json::Value root;
+
+  if (!reader.parse(resp, root))
+  {
+    XBMC->Log(LOG_NOTICE, "Cannot parse EPG.");
+    return "";
+  }
+
+  if (root.get("status", 0).asInt() == 0)
+  {
+    XBMC->Log(LOG_DEBUG, "Returned: %s", resp.c_str());
+    return "";
+  }
+
+  Json::Value::Members ch = root["channels"].getMemberNames();
+  std::string strChannelId = ch[0];
+
+  unsigned int i = 0;
+  Json::Value event = root["channels"][strChannelId][i];
+
+  return event.get("availability", "").asString();
+}
+
 
 PVR_ERROR PVRIptvData::GetRecordings(ADDON_HANDLE handle)
 {
@@ -744,7 +719,6 @@ PVR_ERROR PVRIptvData::GetRecordings(ADDON_HANDLE handle)
 
     strncpy(xbmcRecord.strRecordingId, rec.strRecordId.c_str(), sizeof(xbmcRecord.strRecordingId) - 1);
     strncpy(xbmcRecord.strTitle, rec.strTitle.c_str(), sizeof(xbmcRecord.strTitle) - 1);
-    //strncpy(xbmcRecord.strStreamURL, rec.strStreamUrl.c_str(), sizeof(xbmcRecord.strStreamURL) - 1);
     strncpy(xbmcRecord.strChannelName, rec.strChannelName.c_str(), sizeof(xbmcRecord.strChannelName) - 1);
     xbmcRecord.recordingTime = rec.startTime;
     strncpy(xbmcRecord.strPlotOutline, rec.strPlotOutline.c_str(), sizeof(xbmcRecord.strPlotOutline) - 1);
@@ -873,4 +847,27 @@ string PVRIptvData::GetEventUrl(int channelId, time_t iStart, time_t iEnd)
 string PVRIptvData::GetRecordingUrl(const string &strRecordingId)
 {
   return m_manager.getRecordingUrl(strRecordingId);
+}
+
+PVR_ERROR PVRIptvData::CanPlayEvent(const EPG_TAG *epgTag, bool *bCanPlay)
+{
+  string availability = GetAvailability(epgTag);
+
+  time_t t = time(NULL);
+
+  if (t == -1)
+  {
+    return PVR_ERROR_FAILED;
+  }
+
+  *bCanPlay = (availability == "pvr" || availability == "timeshift") && epgTag->startTime < t;
+  return availability.empty() ? PVR_ERROR_FAILED : PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR PVRIptvData::CanRecordEvent(const EPG_TAG *epgTag, bool *bCanRecord)
+{
+  string availability = GetAvailability(epgTag);
+
+  *bCanRecord = availability == "pvrAllowed" || availability == "timeshift";
+  return availability.empty() ? PVR_ERROR_FAILED : PVR_ERROR_NO_ERROR;
 }
