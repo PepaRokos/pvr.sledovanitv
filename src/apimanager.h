@@ -28,6 +28,8 @@
 #include <string>
 #include <map>
 
+#define MAX_EPG_DURATION 1800
+
 typedef std::map<std::string, std::string> ApiParamMap;
 
 class ApiManager
@@ -40,7 +42,7 @@ public:
   bool isLoggedIn() { return !m_sessionId.empty(); }
   std::string getPlaylist();
   std::string getStreamQualities();
-  std::string getEpg(); //TODO timerange
+  std::string getEpg(time_t start = 0, int duration = 0);
   std::string getPvr();
   std::string getRecordingUrl(const std::string &recId);
   bool addTimer(const std::string &eventId);
@@ -60,6 +62,9 @@ private:
   int getFileContents(const std::string &strUrl, std::string &strContent);
   int getCachedFileContents(const std::string &strCachedName, const std::string &strFilePath,
                                              std::string &strContent, const bool bUseCache = false);
+
+  std::string formatTime(time_t time);
+  std::string toString(int num);
 
 
   static const std::string API_URL;

@@ -110,67 +110,110 @@ bool PVRIptvData::LoadEPG(time_t iStart, time_t iEnd)
     return false;
   }
 
-  if (!m_manager.keepAlive())
+  /*if (!m_manager.keepAlive())
   {
     ThreadSafeLogin();
-  }
+  }*/
 
-  std::string epgString = m_manager.getEpg(); // TODO: add time range
+  auto lmLoad = [this](time_t start, int dur) -> bool {
+    std::string epgString = m_manager.getEpg(start, dur);
 
-  Json::Reader reader;
-  Json::Value root;
+    Json::Reader reader;
+    Json::Value root;
 
-  if (!reader.parse(epgString, root))
-  {
-    XBMC->Log(LOG_NOTICE, "Cannot parse EPG data. EPG not loaded.");
-    m_bEGPLoaded = true;
-    return false;
-  }
-
-  if (m_epg.size() > 0)
-  {
-    m_epg.clear();
-  }
-
-  Json::Value channels = root["channels"];
-  Json::Value::Members chIds = channels.getMemberNames();
-  for (Json::Value::Members::iterator i = chIds.begin(); i != chIds.end(); i++)
-  {
-    std::string strChId = *i;
-
-    PVRIptvChannel* iptvchannel = FindChannel(strChId, "");
-    if (iptvchannel != NULL)
+    if (!reader.parse(epgString, root))
     {
-      PVRIptvEpgChannel epgChannel;
-      epgChannel.strId = strChId;
-      epgChannel.strName = iptvchannel->strChannelName;
-
-      Json::Value epgData = channels[strChId];
-      for (unsigned int j = 0; j < epgData.size(); j++)
-      {
-        Json::Value epgEntry = epgData[j];
-
-        PVRIptvEpgEntry iptventry;
-        iptventry.iBroadcastId = j;
-        iptventry.iGenreType = 0;
-        iptventry.iGenreSubType = 0;
-        iptventry.iChannelId = iptvchannel->iUniqueId;
-        iptventry.strTitle = epgEntry.get("title", "").asString();
-        iptventry.strPlot = epgEntry.get("description", "").asString();
-        iptventry.startTime = ParseDateTime(epgEntry.get("startTime", "").asString());
-        iptventry.endTime = ParseDateTime(epgEntry.get("endTime", "").asString());
-
-        XBMC->Log(LOG_DEBUG, "Loading TV show: %s - %s", strChId.c_str(), iptventry.strTitle.c_str());
-
-        epgChannel.epg.push_back(iptventry);
-      }
-
-      m_epg.push_back(epgChannel);
+      XBMC->Log(LOG_NOTICE, "Cannot parse EPG data. EPG not loaded.");
+      return false;
     }
 
+    Json::Value channels = root["channels"];
+    Json::Value::Members chIds = channels.getMemberNames();
+    for (Json::Value::Members::iterator i = chIds.begin(); i != chIds.end(); i++)
+    {
+      std::string strChId = *i;
+
+      PVRIptvChannel* iptvchannel = FindChannel(strChId, "");
+      if (iptvchannel != NULL)
+      {
+        PVRIptvEpgChannel *epgChannel = NULL;
+        bool bFound = false;
+
+        auto epgCh = std::find_if(m_epg.begin(), m_epg.end(), [strChId](PVRIptvEpgChannel &ch) {
+          return ch.strId == strChId;
+        });
+
+        if (epgCh != m_epg.end())
+        {
+          epgChannel = &*epgCh;
+          bFound = true;
+        }
+        else
+        {
+          epgChannel = new PVRIptvEpgChannel;
+          epgChannel->strId = strChId;
+          epgChannel->strName = iptvchannel->strChannelName;
+        }
+
+        Json::Value epgData = channels[strChId];
+        for (unsigned int j = 0; j < epgData.size(); j++)
+        {
+          Json::Value epgEntry = epgData[j];
+
+          time_t timeStamp = time(NULL);
+
+          PVRIptvEpgEntry iptventry;
+          iptventry.iGenreType = 0;
+          iptventry.iGenreSubType = 0;
+          iptventry.iChannelId = iptvchannel->iUniqueId;
+          iptventry.strTitle = epgEntry.get("title", "").asString();
+          iptventry.strPlot = epgEntry.get("description", "").asString();
+          iptventry.startTime = ParseDateTime(epgEntry.get("startTime", "").asString());
+          iptventry.iBroadcastId = iptventry.startTime;
+          iptventry.endTime = ParseDateTime(epgEntry.get("endTime", "").asString());
+
+          XBMC->Log(LOG_DEBUG, "Loading TV show: %s - %s", strChId.c_str(), iptventry.strTitle.c_str());
+
+          epgChannel->epg.push_back(iptventry);
+        }
+
+        if (!bFound)
+        {
+          m_epg.push_back(*epgChannel);
+          delete epgChannel;
+        }
+      }
+
+    }
+
+    return true;
+  };
+
+  int duration = (iEnd - iStart)/60;
+
+  if (duration < MAX_EPG_DURATION)
+  {
+    if (m_epg.size() > 0)
+    {
+      m_epg.clear();
+    }
+
+    m_bEGPLoaded = lmLoad(iStart, duration);
+  }
+  else
+  {
+    int loadCount = duration/MAX_EPG_DURATION;
+    int startLoad = iStart;
+    bool loaded = true;
+    for (int i = 0; i < loadCount; i++)
+    {
+      loaded &= lmLoad(startLoad, MAX_EPG_DURATION);
+      startLoad = startLoad + (MAX_EPG_DURATION * 60);
+    }
+
+    m_bEGPLoaded = loaded;
   }
 
-  m_bEGPLoaded = true;
   XBMC->Log(LOG_NOTICE, "EPG Loaded.");
 
   return true;
@@ -313,7 +356,7 @@ bool PVRIptvData::LoadPlayList(void)
     }
 
     iptvchan.strStreamURL = strUrl;
-    iptvchan.iUniqueId = GetChannelId(iptvchan.strChannelName.c_str(), iptvchan.strStreamURL.c_str());
+    iptvchan.iUniqueId = GetChannelId(iptvchan.strChannelName.c_str(), channel.get("type", "").asString().c_str());
     iptvchan.iChannelNumber = i + 1;
     iptvchan.strLogoPath = channel.get("logoUrl", "").asString();
     iptvchan.bRadio = channel.get("type", "").asString() != "tv";

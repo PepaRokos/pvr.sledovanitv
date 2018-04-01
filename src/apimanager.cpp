@@ -167,6 +167,20 @@ int ApiManager::getCachedFileContents(const std::string &strCachedName, const st
   return getFileContents(strCachedPath, strContents);
 }
 
+std::string ApiManager::formatTime(time_t time)
+{
+  char bufDateTime[256];
+  std::strftime(bufDateTime, sizeof(bufDateTime), "%Y-%m-%d %H:%M", std::localtime(&time));
+  return bufDateTime;
+}
+
+std::string ApiManager::toString(int num)
+{
+  char bufNumber[256];
+  sprintf(bufNumber, "%d", num);
+  return bufNumber;
+}
+
 bool ApiManager::pairDevice()
 {
   std::string pairJson = readPairFile();
@@ -281,11 +295,17 @@ std::string ApiManager::getStreamQualities()
     return apiCall("get-stream-qualities", ApiParamMap());
 }
 
-std::string ApiManager::getEpg()
+std::string ApiManager::getEpg(time_t start, int duration)
 {
   ApiParamMap params;
 
   params["detail"] = "1";
+
+  if (start != 0)
+    params["time"] = formatTime(start);
+
+  if (duration != 0)
+    params["duration"] = toString((duration > MAX_EPG_DURATION ? MAX_EPG_DURATION : duration));
 
   return apiCall("epg", params);
 }
