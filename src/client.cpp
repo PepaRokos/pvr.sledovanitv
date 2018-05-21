@@ -141,7 +141,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     return ADDON_STATUS_PERMANENT_FAILURE;
   }
 
-  XBMC->Log(LOG_DEBUG, "%s - Creating the PVR IPTV Simple add-on", __FUNCTION__);
+  XBMC->Log(LOG_DEBUG, "%s - Creating the PVR sledovanitv.cz add-on", __FUNCTION__);
 
   m_CurStatus     = ADDON_STATUS_UNKNOWN;
   g_strUserPath   = pvrprops->strUserPath;
@@ -292,6 +292,12 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
   return PVR_ERROR_SERVER_ERROR;
 }
 
+void SetStreamPropValue(PVR_NAMED_VALUE *properties, const std::string &strUrl)
+{
+  strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
+  strncpy(properties[0].strValue, strUrl.c_str(), sizeof(properties[0].strValue) - 1);
+}
+
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
 {
   if (!channel || !properties || !iPropertiesCount)
@@ -304,8 +310,7 @@ PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE
 
   if (m_data && m_data->GetChannel(*channel, currChannel))
   {
-    strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
-    strncpy(properties[0].strValue, currChannel.strStreamURL.c_str(), sizeof(properties[0].strValue) - 1);
+    SetStreamPropValue(properties, currChannel.strStreamURL);
     *iPropertiesCount = 1;
 
     return PVR_ERROR_NO_ERROR;
@@ -326,40 +331,13 @@ PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED
 
   if (m_data && m_data->GetRecording(*recording, currRecording))
   {
-    strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
-    strncpy(properties[0].strValue, m_data->GetRecordingUrl(currRecording.strRecordId).c_str(), sizeof(properties[0].strValue) - 1);
+    SetStreamPropValue(properties, m_data->GetRecordingUrl(currRecording.strRecordId));
     *iPropertiesCount = 1;
 
     return PVR_ERROR_NO_ERROR;
   }
 
   return PVR_ERROR_SERVER_ERROR;
-}
-
-bool OpenLiveStream(const PVR_CHANNEL &channel)
-{
-  /*XBMC->Log(LOG_DEBUG, "%s - OpenLiveStream", __FUNCTION__);
-  if (m_data)
-  {
-    CloseLiveStream();
-
-    if (m_data->GetChannel(channel, m_currentChannel))
-    {
-      m_bIsPlaying = true;
-      m_data->SetPlaying(true);
-      return true;
-    }
-  }*/
-
-  return false;
-}
-
-void CloseLiveStream(void)
-{
-  /*if (m_data)
-    m_data->SetPlaying(false);
-
-  m_bIsPlaying = false;*/
 }
 
 int GetCurrentClientChannel(void)
@@ -543,8 +521,7 @@ PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG *pTag, PVR_NAMED_VALUE *proper
     return PVR_ERROR_FAILED;
   }
 
-  strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName) - 1);
-  strncpy(properties[0].strValue, url.c_str(), sizeof(properties[0].strValue) - 1);
+  SetStreamPropValue(properties, url);
   *iPropertiesCount = 1;
 
   return PVR_ERROR_NO_ERROR;
@@ -565,6 +542,8 @@ PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL &channel) { return PVR_ERR
 PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR DeleteAllRecordingsFromTrash() { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR UndeleteRecording(const PVR_RECORDING& recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
+bool OpenLiveStream(const PVR_CHANNEL &channel) { return false; }
+void CloseLiveStream(void) {}
 int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize) { return 0; }
 void DemuxReset(void) {}
 void DemuxFlush(void) {}
@@ -597,5 +576,5 @@ PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEME
 PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-
+PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
 }
