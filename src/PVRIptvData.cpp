@@ -45,24 +45,31 @@ PVRIptvData::PVRIptvData(void)
   m_bEGPLoaded = false;
   m_bIsPlaying = false;
 
-  m_manager.login();
-
-  if (LoadPlayList())
+  if (m_manager.login())
   {
-    XBMC->QueueNotification(QUEUE_INFO, "%d channels loaded.", m_channels.size());
+    if (LoadPlayList())
+    {
+      XBMC->QueueNotification(QUEUE_INFO, "%d channels loaded.", m_channels.size());
+    }
+
+    m_bKeepAlive = true;
+    CreateThread();
+  }
+  else
+  {
+    XBMC->QueueNotification(QUEUE_ERROR, "Cannot login to backend. Check login info and restart plugin.");
   }
 
-  m_bKeepAlive = true;
-  CreateThread();
 }
 
 void *PVRIptvData::Process(void)
 {
   XBMC->Log(LOG_DEBUG, "keepAlive:: thread started");
   unsigned int counter = 0;
+  unsigned int counterRec = 0;
   while (m_bKeepAlive)
   {
-    if (counter >= 20000)
+    if (counter >= 20)
     {
       XBMC->Log(LOG_DEBUG, "keepAlive:: trigger");
       counter = 0;
@@ -72,7 +79,16 @@ void *PVRIptvData::Process(void)
       }
     }
 
-    counter += 1000;
+    if (counterRec >= 300)
+    {
+      XBMC->Log(LOG_DEBUG, "reload recordings");
+      counterRec = 0;
+      PVR->TriggerTimerUpdate();
+      PVR->TriggerRecordingUpdate();
+    }
+
+    counter += 1;
+    counterRec += 1;
     Sleep(1000);
   }
   XBMC->Log(LOG_DEBUG, "keepAlive:: thread stopped");
@@ -203,12 +219,18 @@ bool PVRIptvData::LoadEPG(time_t iStart, time_t iEnd)
   else
   {
     int loadCount = duration/MAX_EPG_DURATION;
+
+    if (loadCount > 4)
+    {
+      loadCount = 4;
+    }
+
     int startLoad = iStart;
     bool loaded = true;
     for (int i = 0; i < loadCount; i++)
     {
       loaded &= lmLoad(startLoad, MAX_EPG_DURATION);
-      startLoad = startLoad + (MAX_EPG_DURATION * 60);
+      startLoad += ((MAX_EPG_DURATION - 360) * 60);
     }
 
     m_bEGPLoaded = loaded;
